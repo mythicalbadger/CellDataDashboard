@@ -7,12 +7,12 @@ from pathlib import Path
 
 
 class SlideDeck:
-    thresholds: pd.DataFrame = pd.read_excel(pd.ExcelFile(
-        "Data/Thresholds.xlsx"), 'opal color')
 
     def __init__(self, data_path: str) -> None:
         self.slides = dict()
         self.data_path = data_path
+        SlideDeck.thresholds: pd.DataFrame = pd.read_excel(pd.ExcelFile(
+            data_path + "Thresholds.xlsx"), 'opal color')
 
         genes = [gene for gene in GeneType]
         self.slide_to_gene = {

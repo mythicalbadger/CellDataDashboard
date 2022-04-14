@@ -1,7 +1,6 @@
 import streamlit as st
 
 from CellClasses.SlideDeck import *
-from CellClasses.Slide import *
 from PIL import Image
 
 st.set_page_config(layout="wide")
