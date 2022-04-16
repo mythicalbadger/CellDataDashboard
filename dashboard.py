@@ -37,7 +37,7 @@ load_btn = st.button(label="Load")
 
 if load_btn:
 
-    deck: SlideDeck = create_slide_deck(path + "Slides/")
+    deck: SlideDeck = create_slide_deck(path)
 
     with st.sidebar:
         st.subheader("Choose a slide")
