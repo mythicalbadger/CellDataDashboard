@@ -36,6 +36,10 @@ class SlideDeck:
         slides_path: str = self.data_path + "Slides/"
         for folder in sorted([f for f in os.listdir(slides_path) if not f.startswith('.')]):
             path: str = str(Path(slides_path + folder).absolute()) + "/"
+
+            if not os.listdir(path):
+                continue
+
             slide = CellClasses.Slide.Slide(path, self.slide_to_gene[folder])
             slides[folder] = slide
 
