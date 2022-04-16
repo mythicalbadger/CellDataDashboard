@@ -35,10 +35,11 @@ st.write("All data will be in a folder called `Data`. Inside `Data`, there will 
 path = st.text_input(label="Path")
 load_btn = st.button(label="Load")
 
-if load_btn:
-
+if load_btn and "slide_deck" not in st.session_state:
     deck: SlideDeck = create_slide_deck(path)
 
+if "slide_deck" in st.session_state:
+    deck: SlideDeck = st.session_state.slide_deck
     with st.sidebar:
         st.subheader("Choose a slide")
         slide = st.selectbox("Slide", options=["QC Slide", "Slide 1", "Slide 2", "Slide 3", "Slide 4", "Slide 5", "Slide 6"])
