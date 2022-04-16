@@ -24,6 +24,10 @@ def save_means(tissue):
     out = tissue.hscores_to_csv()
     return out.to_csv().encode("utf-8")
 
+def save_hscores(tissue):
+    out = tissue.means_to_csv()
+    return out.to_csv().encode("utf-8")
+
 
 st.title("Cell Data Dashboard")
 st.subheader("Specify Data Path")
@@ -49,11 +53,18 @@ if "slide_deck" in st.session_state:
         tissue = st.selectbox("Tissue", options=[tissue for tissue in slide.tissues])
         tissue = get_tissue(slide, tissue)
 
+        st.subheader("Save H-Scores to CSV")
+        csv_hscores = save_hscores(tissue)
+        st.download_button(label="Download",
+                           data=csv_hscores,
+                           file_name=tissue.name + "-hscores.csv",
+                           mime="text/csv")
+
         st.subheader("Save H-Score means to CSV")
         csv = save_means(tissue)
         st.download_button(label="Download",
                            data=csv,
-                           file_name="hscoremeans.csv",
+                           file_name=tissue.name + "-hscoremeans.csv",
                            mime="text/csv")
 
     st.subheader("Cell Counts")

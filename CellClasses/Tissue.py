@@ -279,4 +279,7 @@ class Tissue:
             valid_frames.append(frame)
         return pd.concat(valid_frames)
 
+    def means_to_csv(self):
+        return self.calculate_hscores()
+
 
