@@ -22,7 +22,7 @@ class Slide:
         tissues = dict()
 
         # For each folder in the slide's folder, create a Tissue object
-        for folder in os.listdir(self.data_path):
+        for folder in [f for f in os.listdir(self.data_path) if not f.startswith('.')]:
             tissues[folder] = Tissue(slide=self, name=folder, data_path=self.data_path + folder)
         self.tissues = tissues
 

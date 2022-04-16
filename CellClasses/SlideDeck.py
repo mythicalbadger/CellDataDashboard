@@ -33,7 +33,7 @@ class SlideDeck:
         :return: None
         """
         slides = dict()
-        for folder in sorted(os.listdir(self.data_path)):
+        for folder in sorted([f for f in os.listdir(self.data_path) if not f.startswith('.')]):
             path: str = str(Path(self.data_path + folder).absolute()) + "/"
             slide = CellClasses.Slide.Slide(path, self.slide_to_gene[folder])
             slides[folder] = slide
