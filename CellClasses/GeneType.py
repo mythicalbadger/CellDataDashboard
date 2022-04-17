@@ -32,7 +32,7 @@ class GeneType(Enum):
     MS4A1 = "MS4A1"
 
     # Slide 5
-    NCBP2AS2 = "NCBP2AS2"
+    NCBP2AS2 = "NCBP2_AS2"
     NOTCH3 = "NOTCH3"
     VEGFA = "VEGFA"
     CD34 = "CD34"
