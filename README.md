@@ -1,4 +1,10 @@
 # Cell Data Dashboard
+## Pulling Changes
+If a change has been made, you will want to open up your terminal and `cd` (change directory) into the path where your CellDataDashboard is (or do the folder dragging thing on MacOS). Once you are in the folder in your terminal, type
+```bash
+git pull
+```
+This will *pull* the latest updated version, which you can then run.
 ## Setup
 ### Step 1: Install Python
 Head over to https://www.python.org/ and grab the latest version of Python (I wrote this in version `3.8` but `3.10` should be fine). Just click Downloads and download the latest source release. ***Please be sure to tick "Add Python to PATH" during / after the installation***.
