@@ -155,17 +155,26 @@ class Tissue:
         Calculates zero scores for each field - the total number of expressions subtracted from the total number of cells
         :return: pandas DataFrame with zero scores
         """
+        # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
         datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
-        acd_scores = self.score_acd_ranges()
-        scores = dict()
 
-        # for loop because dictionary comprehension was menacingly long
-        for i in range(len(datasets)):
-            d = datasets[i]
-            name = d.name.split("Cells_")[-1]
-            scores[name] = len(d) - acd_scores.loc[:, name].sum()
+        # Generate multiindex with gene name on the outside and ACD score field on the inside
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
+                                 ["ACD Score 0"])
 
-        return pd.DataFrame(scores, index=["Zero Score"])
+        scores = {datasets[i].name.split("Cells_")[-1]: [] for i in range(len(datasets))}
+
+        # Calculate ACD scores for each gene for each dataset
+        for i, dataset in enumerate(datasets):
+            for gene in self.slide.get_genes():
+                column_key = "Children_Expression_%s_Count" % gene.value
+
+                # Gets expression counts
+                counts = dict(dataset[column_key].value_counts().sort_index())
+                scores[dataset.name.split("Cells_")[-1]].append(counts[0])
+
+        ret = pd.DataFrame(scores, index=idx)
+        return ret
 
     def score_percent_bins(self):
         """
@@ -281,5 +290,3 @@ class Tissue:
 
     def means_to_csv(self):
         return self.calculate_hscores()
-
-
