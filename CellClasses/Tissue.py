@@ -171,7 +171,8 @@ class Tissue:
 
                 # Gets expression counts
                 counts = dict(dataset[column_key].value_counts().sort_index())
-                scores[dataset.name.split("Cells_")[-1]].append(counts[0])
+                zsc = counts[0] if 0 in counts.keys() else 0
+                scores[dataset.name.split("Cells_")[-1]].append(zsc)
 
         ret = pd.DataFrame(scores, index=idx)
         return ret
