@@ -103,6 +103,29 @@ class Tissue:
 
         return pd.DataFrame(df, index=["Counts"])
 
+    def calculate_expressed_markers(self):
+        """
+        Calculates total expressed markers by fetching EverythingCells
+        """
+        # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
+        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+
+        # Generate multiindex with gene name on the outside and ACD score field on the inside
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
+                                 ["Expressions"])
+
+        scores = {datasets[i].name.split("Cells_")[-1]: [] for i in range(len(datasets))}
+
+        # Calculate ACD scores for each gene for each dataset
+        for gene in self.slide.get_genes():
+            for i, dataset in enumerate(datasets):
+                column_key = "Children_Expression_%s_Count" % gene.value
+                scores[dataset.name.split("Cells_")[-1]].append(dataset.loc[:, column_key].sum())
+
+        ret = pd.DataFrame(scores, index=idx)
+        return ret
+
+
     def score_acd_ranges(self):
         """
         Scores ACD ranges for each field

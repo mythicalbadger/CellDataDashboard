@@ -70,6 +70,9 @@ if "slide_deck" in st.session_state:
     st.subheader("Cell Counts")
     st.dataframe(tissue.calculate_cell_counts())
 
+    st.subheader("Cell Expressions")
+    st.dataframe(tissue.calculate_expressed_markers())
+
     st.subheader("ACD Scores")
     st.dataframe(tissue.score_acd_ranges())
 
