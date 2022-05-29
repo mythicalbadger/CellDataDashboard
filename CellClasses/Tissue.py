@@ -125,7 +125,6 @@ class Tissue:
         ret = pd.DataFrame(scores, index=idx)
         return ret
 
-
     def score_acd_ranges(self):
         """
         Scores ACD ranges for each field
@@ -193,8 +192,31 @@ class Tissue:
                 column_key = "Children_Expression_%s_Count" % gene.value
 
                 # Gets expression counts
-                counts = dict(dataset[column_key].value_counts().sort_index())
-                zsc = counts[0] if 0 in counts.keys() else 0
+                bin_one_threshold = CellClasses.SlideDeck.SlideDeck.get_threshold(gene)
+                zsc = dataset[column_key].where(lambda x: x < bin_one_threshold).dropna().size
+                scores[dataset.name.split("Cells_")[-1]].append(zsc)
+
+        ret = pd.DataFrame(scores, index=idx)
+        return ret
+
+    def calculate_positive_expressors(self):
+        # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
+        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+
+        # Generate multiindex with gene name on the outside and ACD score field on the inside
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
+                                 ["Positive Expressors"])
+
+        scores = {datasets[i].name.split("Cells_")[-1]: [] for i in range(len(datasets))}
+
+        # Calculate ACD scores for each gene for each dataset
+        for i, dataset in enumerate(datasets):
+            for gene in self.slide.get_genes():
+                column_key = "Children_Expression_%s_Count" % gene.value
+
+                # Gets expression counts
+                bin_one_threshold = CellClasses.SlideDeck.SlideDeck.get_threshold(gene)
+                zsc = dataset[column_key].where(lambda x: x >= bin_one_threshold).dropna().size
                 scores[dataset.name.split("Cells_")[-1]].append(zsc)
 
         ret = pd.DataFrame(scores, index=idx)
@@ -314,3 +336,5 @@ class Tissue:
 
     def means_to_csv(self):
         return self.calculate_hscores()
+
+

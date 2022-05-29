@@ -28,6 +28,9 @@ def save_hscores(tissue):
     out = tissue.means_to_csv()
     return out.to_csv().encode("utf-8")
 
+def save_zero_scores(tissue):
+    return tissue.calculate_zero_scores().to_csv().encode("utf-8")
+
 
 st.title("Cell Data Dashboard")
 st.subheader("Specify Data Path")
@@ -67,17 +70,27 @@ if "slide_deck" in st.session_state:
                            file_name=tissue.name + "-hscoremeans.csv",
                            mime="text/csv")
 
+        st.subheader("Save Zero Scores to CSV")
+        csv = save_zero_scores(tissue)
+        st.download_button(label="Download",
+                           data=csv,
+                           file_name=tissue.name + "-zero-scores.csv",
+                           mime="text/csv")
+
     st.subheader("Cell Counts")
     st.dataframe(tissue.calculate_cell_counts())
 
     st.subheader("Cell Expressions")
     st.dataframe(tissue.calculate_expressed_markers())
 
+    st.subheader("Zero Scores")
+    st.dataframe(tissue.calculate_zero_scores())
+
     st.subheader("ACD Scores")
     st.dataframe(tissue.score_acd_ranges())
 
-    st.subheader("Zero Scores")
-    st.dataframe(tissue.calculate_zero_scores())
+    st.subheader("Positive Expressors")
+    st.dataframe(tissue.calculate_positive_expressors())
 
     st.subheader("Percent Bins")
     st.dataframe(tissue.score_percent_bins())
