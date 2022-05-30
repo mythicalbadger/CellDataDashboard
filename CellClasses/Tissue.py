@@ -155,13 +155,12 @@ class Tissue:
 
                 # Merges counts and indices into a pandas dataframe
                 count_df = pd.DataFrame(zip(indices, counts), columns=["Expressions", "Score"])
-                bin_one_threshold = CellClasses.SlideDeck.SlideDeck.get_threshold(gene)
 
                 # Calculate range scores
                 range_scores = [
-                    sum(count_df.loc[count_df['Expressions'] == bin_one_threshold]['Score']),
+                    sum(count_df.loc[(count_df['Expressions'] >= 1) & (count_df['Expressions'] <= 3)]['Score']),
                     sum(count_df.loc[
-                            (count_df['Expressions'] >= bin_one_threshold + 1) & (count_df['Expressions'] <= 9)][
+                            (count_df['Expressions'] >= 4) & (count_df['Expressions'] <= 9)][
                             'Score']),
                     sum(count_df.loc[(count_df['Expressions'] >= 10) & (count_df['Expressions'] <= 15)]['Score']),
                     sum(count_df.loc[count_df['Expressions'] > 15]['Score']),
@@ -192,8 +191,7 @@ class Tissue:
                 column_key = "Children_Expression_%s_Count" % gene.value
 
                 # Gets expression counts
-                bin_one_threshold = CellClasses.SlideDeck.SlideDeck.get_threshold(gene)
-                zsc = dataset[column_key].where(lambda x: x < bin_one_threshold).dropna().size
+                zsc = dataset[column_key].where(lambda x: x == 0).dropna().size
                 scores[dataset.name.split("Cells_")[-1]].append(zsc)
 
         ret = pd.DataFrame(scores, index=idx)

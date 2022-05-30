@@ -5,7 +5,6 @@ from PIL import Image
 
 st.set_page_config(layout="wide")
 
-
 def create_slide_deck(path):
     if "slide_deck" not in st.session_state:
         st.session_state.slide_deck = SlideDeck(path)
@@ -56,52 +55,75 @@ if "slide_deck" in st.session_state:
         tissue = st.selectbox("Tissue", options=[tissue for tissue in slide.tissues])
         tissue = get_tissue(slide, tissue)
 
-        st.subheader("Save H-Scores to CSV")
-        csv_hscores = save_hscores(tissue)
-        st.download_button(label="Download",
-                           data=csv_hscores,
-                           file_name=tissue.name + "-hscores.csv",
-                           mime="text/csv")
-
-        st.subheader("Save H-Score means to CSV")
-        csv = save_means(tissue)
-        st.download_button(label="Download",
-                           data=csv,
-                           file_name=tissue.name + "-hscoremeans.csv",
-                           mime="text/csv")
-
-        st.subheader("Save Zero Scores to CSV")
-        csv = save_zero_scores(tissue)
-        st.download_button(label="Download",
-                           data=csv,
-                           file_name=tissue.name + "-zero-scores.csv",
-                           mime="text/csv")
-
     st.subheader("Cell Counts")
-    st.dataframe(tissue.calculate_cell_counts())
+    cell_counts = tissue.calculate_cell_counts()
+    st.download_button(label="Download",
+                       data=cell_counts.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-cell-counts.csv",
+                       mime="text/csv")
+    st.dataframe(cell_counts)
 
     st.subheader("Cell Expressions")
-    st.dataframe(tissue.calculate_expressed_markers())
+    expressed_markers = tissue.calculate_expressed_markers()
+    st.download_button(label="Download",
+                       data=expressed_markers.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-expressed-markers.csv",
+                       mime="text/csv")
+    st.dataframe(expressed_markers)
 
     st.subheader("Zero Scores")
-    st.dataframe(tissue.calculate_zero_scores())
+    zero_scores = tissue.calculate_zero_scores()
+    st.download_button(label="Download",
+                       data=zero_scores.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-zero_scores.csv",
+                       mime="text/csv")
+    st.dataframe(zero_scores)
 
     st.subheader("ACD Scores")
-    st.dataframe(tissue.score_acd_ranges())
+    acd_ranges = tissue.score_acd_ranges()
+    st.download_button(label="Download",
+                       data=acd_ranges.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-acd_ranges.csv",
+                       mime="text/csv")
+    st.dataframe(acd_ranges)
 
     st.subheader("Positive Expressors")
-    st.dataframe(tissue.calculate_positive_expressors())
+    positive_expressors = tissue.calculate_positive_expressors()
+    st.download_button(label="Download",
+                       data=positive_expressors.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-positive_expressors.csv",
+                       mime="text/csv")
+    st.dataframe(positive_expressors)
 
     st.subheader("Percent Bins")
-    st.dataframe(tissue.score_percent_bins())
+    percent_bins = tissue.score_percent_bins()
+    st.download_button(label="Download",
+                       data=percent_bins.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-percent_bins.csv",
+                       mime="text/csv")
+    st.dataframe(percent_bins)
 
     st.subheader("Weighted Percent Bins")
-    st.dataframe(tissue.score_weighted_percent_bins())
+    weighted_percent_bins = tissue.score_weighted_percent_bins()
+    st.download_button(label="Download",
+                       data=weighted_percent_bins.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-weighted_percent_bins.csv",
+                       mime="text/csv")
+    st.dataframe(weighted_percent_bins)
 
     st.subheader("H-Scores")
-    st.dataframe(tissue.calculate_hscores())
+    hscores = tissue.calculate_hscores()
+    st.download_button(label="Download",
+                       data=hscores.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-hscores.csv",
+                       mime="text/csv")
+    st.dataframe(hscores)
 
     st.subheader("H-Score Means (Combined)")
+    st.download_button(label="Download",
+                       data=save_means(tissue),
+                       file_name=tissue.name + "-hscoremeans.csv",
+                       mime="text/csv")
     cols = st.columns(4)
 
     hscore_means = tissue.calculate_hscore_means()
@@ -123,3 +145,4 @@ if "slide_deck" in st.session_state:
 
         for i, mean in enumerate(hscore_means):
             cols[i].metric(hscore_means.index[i][0], round(mean, 2))
+
