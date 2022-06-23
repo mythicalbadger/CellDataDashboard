@@ -71,6 +71,14 @@ if "slide_deck" in st.session_state:
                        mime="text/csv")
     st.dataframe(expressed_markers)
 
+    st.subheader("Median Markers")
+    median_markers = tissue.calculate_median_markers()
+    st.download_button(label="Download",
+                       data=median_markers.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-median-markers.csv",
+                       mime="text/csv")
+    st.dataframe(median_markers)
+
     st.subheader("Zero Scores")
     zero_scores = tissue.calculate_zero_scores()
     st.download_button(label="Download",
