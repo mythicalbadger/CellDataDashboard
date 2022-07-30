@@ -17,6 +17,8 @@ class Tissue:
         self.data_loader.set_data_path(data_path)
         self.load_data()
 
+        self.sorted_everything_cells = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+
     def load_data(self) -> None:
         """
         Loads required datasets -- EverythingExpression and EverythingCells for each field
@@ -67,6 +69,11 @@ class Tissue:
             print(f"{i + 1}) {k}")
 
     def sort_datasets_by_field(self, datasets):
+        """
+        Sorts datasets by their field number
+        :param datasets: a list of datasets
+        :return: a list of datasets sorted by field number
+        """
         return sorted(datasets, key=lambda d: int(d.name.split(" ")[-1].split("_")[0]))
 
     def gen_multi_idx(self, left, right):
@@ -84,31 +91,21 @@ class Tissue:
         Calculates total cell counts by fetching EverythingCells
         :return: pandas DataFrame with counts
         """
-
         # Get EverythingCells datasets for each field
-        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+        datasets = self.sorted_everything_cells
 
         # Name format: Exp_EverythingCells_Field <1-14>_<B/M>
-        # Just want the Field <1-14>
-        fields = [d.name.split("Cells_")[-1] for d in datasets]
+        fields = (d.name.split("Cells_")[-1] for d in datasets)  # field names
+        lengths = [len(d.index) for d in datasets]  # cell counts
 
-        # Number of rows are the counts
-        lengths = [len(d.index) for d in datasets]
-
-        # Zip them together and sort by field number
-        counts = np.array(list(zip(fields, lengths)))
-
-        # Turn them into dictionary for pandas
-        df = {counts[:, 0][i]: counts[:, 1][i] for i in range(len(counts))}
-
-        return pd.DataFrame(df, index=["Counts"])
+        return pd.DataFrame([lengths], index=["Counts"], columns=fields)
 
     def calculate_expressed_markers(self):
         """
         Calculates total expressed markers by fetching EverythingCells
         """
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+        datasets = self.sorted_everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
@@ -128,7 +125,7 @@ class Tissue:
     def calculate_median_markers(self):
 
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+        datasets = self.sorted_everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
@@ -156,7 +153,7 @@ class Tissue:
         :return: pandas DataFrame with ACD scores
         """
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+        datasets = self.sorted_everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
@@ -197,7 +194,7 @@ class Tissue:
         :return: pandas DataFrame with zero scores
         """
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+        datasets = self.sorted_everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
@@ -219,7 +216,7 @@ class Tissue:
 
     def calculate_positive_expressors(self):
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+        datasets = self.sorted_everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
@@ -252,7 +249,7 @@ class Tissue:
         """
 
         # Get pertinent datasets and setup return dataframe
-        datasets = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+        datasets = self.sorted_everything_cells
         acd_scores = self.score_acd_ranges()
         zero_scores = self.calculate_zero_scores()
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [f"% bin {i}" for i in range(5)])
@@ -354,5 +351,3 @@ class Tissue:
 
     def means_to_csv(self):
         return self.calculate_hscores()
-
-

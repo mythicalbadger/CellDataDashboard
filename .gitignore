@@ -1,4 +1,4 @@
-Data/
-CellClasses/__pycache__/
-venv/
-.idea/
+/Data/
+/CellClasses/__pycache__/
+/venv/
+/.idea/
