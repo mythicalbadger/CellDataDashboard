@@ -16,8 +16,22 @@ class Tissue:
         self.data_loader = DataLoader()
         self.data_loader.set_data_path(data_path)
         self.load_data()
+        self.db = None
+        self.initialize_db()
+        self.everything_cells = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
 
-        self.sorted_everything_cells = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+    def db_contains(self, field: str):
+        return self.db[field] is not None
+
+    def db_put(self, field: str, data: pd.DataFrame):
+        self.db[field] = data
+
+    def db_get(self, field: str):
+        return self.db[field]
+
+    def initialize_db(self):
+        fields = ["CellCounts", "MedianMarkers", "ExpressedMarkers", "ACDScores", "ZeroScores", "PositiveExpressors", "PercentBins", "WeightedPercentBins"]
+        self.db = {f: None for f in fields}
 
     def load_data(self) -> None:
         """
@@ -91,31 +105,34 @@ class Tissue:
         Calculates total cell counts by fetching EverythingCells
         :return: pandas DataFrame with counts
         """
-        # Get EverythingCells datasets for each field
-        datasets = self.sorted_everything_cells
+        if self.db_contains("CellCounts"):
+            return self.db_get("CellCounts")
 
         # Name format: Exp_EverythingCells_Field <1-14>_<B/M>
-        fields = (d.name.split("Cells_")[-1] for d in datasets)  # field names
-        lengths = [len(d.index) for d in datasets]  # cell counts
+        fields = [d.name.split("Cells_")[-1] for d in self.everything_cells]  # field names
+        lengths = [len(d.index) for d in self.everything_cells]  # cell counts
 
-        return pd.DataFrame([lengths], index=["Counts"], columns=fields)
+        ret = pd.DataFrame([lengths], index=["Counts"], columns=fields)
+        self.db_put("CellCounts", ret)
+        return ret
 
     def calculate_expressed_markers(self):
         """
         Calculates total expressed markers by fetching EverythingCells
         """
+        if self.db_contains("ExpressedMarkers"):
+            return self.db_get("ExpressedMarkers")
+
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sorted_everything_cells
+        datasets = self.everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
-        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
-                                 ["Expressions"])
-
-        scores = {datasets[i].name.split("Cells_")[-1]: [] for i in range(len(datasets))}
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], ["Expressions"])
+        scores = {d.name.split("Cells_")[-1]: [] for d in datasets}
 
         # Calculate ACD scores for each gene for each dataset
         for gene in self.slide.get_genes():
-            for i, dataset in enumerate(datasets):
+            for dataset in datasets:
                 column_key = "Children_Expression_%s_Count" % gene.value
                 scores[dataset.name.split("Cells_")[-1]].append(dataset.loc[:, column_key].sum())
 
@@ -123,23 +140,24 @@ class Tissue:
         return ret
 
     def calculate_median_markers(self):
+        if self.db_contains("MedianMarkers"):
+            return self.db_get("MedianMarkers")
 
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sorted_everything_cells
+        datasets = self.everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
-        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
-                                 ["Expressions"])
-
-        scores = {datasets[i].name.split("Cells_")[-1]: [] for i in range(len(datasets))}
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], ["Expressions"])
+        scores = {d.name.split("Cells_")[-1]: [] for d in datasets}
 
         # Calculate ACD scores for each gene for each dataset
         for gene in self.slide.get_genes():
-            for i, dataset in enumerate(datasets):
+            for dataset in datasets:
                 column_key = "Children_Expression_%s_Count" % gene.value
                 scores[dataset.name.split("Cells_")[-1]].append(dataset.loc[:, column_key].median())
 
         ret = pd.DataFrame(scores, index=idx)
+        self.db_put("MedianMarkers", ret)
         return ret
 
     def score_acd_ranges(self):
@@ -152,18 +170,19 @@ class Tissue:
         - ACD Score 4 : number of cells with expressions greater than 15
         :return: pandas DataFrame with ACD scores
         """
+        if self.db_contains("ACDScores"):
+            return self.db_get("ACDScores")
+
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sorted_everything_cells
+        datasets = self.everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
-        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
-                                 ["ACD Score 1", "ACD Score 2", "ACD Score 3", "ACD Score 4"])
-
-        scores = {datasets[i].name.split("Cells_")[-1]: [] for i in range(len(datasets))}
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], ["ACD Score 1", "ACD Score 2", "ACD Score 3", "ACD Score 4"])
+        scores = {d.name.split("Cells_")[-1]: [] for d in datasets}
 
         # Calculate ACD scores for each gene for each dataset
         for gene in self.slide.get_genes():
-            for i, dataset in enumerate(datasets):
+            for dataset in datasets:
                 column_key = "Children_Expression_%s_Count" % gene.value
 
                 # Gets expression counts
@@ -176,9 +195,7 @@ class Tissue:
                 # Calculate range scores
                 range_scores = [
                     sum(count_df.loc[(count_df['Expressions'] >= 1) & (count_df['Expressions'] <= 3)]['Score']),
-                    sum(count_df.loc[
-                            (count_df['Expressions'] >= 4) & (count_df['Expressions'] <= 9)][
-                            'Score']),
+                    sum(count_df.loc[(count_df['Expressions'] >= 4) & (count_df['Expressions'] <= 9)]['Score']),
                     sum(count_df.loc[(count_df['Expressions'] >= 10) & (count_df['Expressions'] <= 15)]['Score']),
                     sum(count_df.loc[count_df['Expressions'] > 15]['Score']),
                 ]
@@ -186,6 +203,7 @@ class Tissue:
                 scores[dataset.name.split("Cells_")[-1]].extend(range_scores)
 
         ret = pd.DataFrame(scores, index=idx)
+        self.db_put("ACDScores", ret)
         return ret
 
     def calculate_zero_scores(self):
@@ -193,14 +211,16 @@ class Tissue:
         Calculates zero scores for each field - the total number of expressions subtracted from the total number of cells
         :return: pandas DataFrame with zero scores
         """
+        if self.db_contains("ZeroScores"):
+            return self.db_get("ZeroScores")
+
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sorted_everything_cells
+        datasets = self.everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
-        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
-                                 ["ACD Score 0"])
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], ["ACD Score 0"])
 
-        scores = {datasets[i].name.split("Cells_")[-1]: [] for i in range(len(datasets))}
+        scores = {d.name.split("Cells_")[-1]: [] for d in datasets}
 
         # Calculate ACD scores for each gene for each dataset
         for i, dataset in enumerate(datasets):
@@ -212,17 +232,19 @@ class Tissue:
                 scores[dataset.name.split("Cells_")[-1]].append(zsc)
 
         ret = pd.DataFrame(scores, index=idx)
+        self.db_put("ZeroScores", ret)
         return ret
 
     def calculate_positive_expressors(self):
+        if self.db_contains("PositiveExpressors"):
+            return self.db_get("PositiveExpressors")
+
         # Get dataset and column key from file with all cell data (nuclei + cytoplasm)
-        datasets = self.sorted_everything_cells
+        datasets = self.everything_cells
 
         # Generate multiindex with gene name on the outside and ACD score field on the inside
-        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()],
-                                 ["Positive Expressors"])
-
-        scores = {datasets[i].name.split("Cells_")[-1]: [] for i in range(len(datasets))}
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], ["Positive Expressors"])
+        scores = {d.name.split("Cells_")[-1]: [] for d in datasets}
 
         # Calculate ACD scores for each gene for each dataset
         for i, dataset in enumerate(datasets):
@@ -235,6 +257,7 @@ class Tissue:
                 scores[dataset.name.split("Cells_")[-1]].append(zsc)
 
         ret = pd.DataFrame(scores, index=idx)
+        self.db_put("PositiveExpressors", ret)
         return ret
 
     def score_percent_bins(self):
@@ -247,11 +270,13 @@ class Tissue:
         - Percent bin 4 : percentage of number of cells with ACD score 4 in the dataset
         :return: pandas DataFrame with percent bin scores
         """
+        if self.db_contains("PercentBins"):
+            return self.db_get("PercentBins")
 
         # Get pertinent datasets and setup return dataframe
-        datasets = self.sorted_everything_cells
-        acd_scores = self.score_acd_ranges()
-        zero_scores = self.calculate_zero_scores()
+        datasets = self.everything_cells
+        acd_scores = self.db_get("ACDScores") if self.db_contains("ACDScores") else self.score_acd_ranges()
+        zero_scores = self.db_get("ZeroScores") if self.db_contains("ZeroScores") else self.calculate_zero_scores()
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [f"% bin {i}" for i in range(5)])
         percents = {col: [] for col in acd_scores.columns}
 
@@ -266,16 +291,20 @@ class Tissue:
                 zs = zero_scores.loc[:, acd_scores.columns[i]][0] / len(datasets[i]) * 100
                 percents[percent].insert(j, zs)
 
-        return pd.DataFrame(percents, index=idx)
+        ret = pd.DataFrame(percents, index=idx)
+        self.db_put("PercentBins", ret)
+        return ret
 
     def score_weighted_percent_bins(self):
         """
         Calculates weighted percent bins for each field. Basically just (percent bin score X bin number)
         :return: pandas DataFrame with weighted percent bin scores
         """
+        if self.db_contains("WeightedPercentBins"):
+            return self.db_get("WeightedPercentBins")
 
         # Get percent bins and set up multipliers / index
-        percent_bins = self.score_percent_bins()
+        percent_bins = self.db_get("PercentBins") if self.db_contains("PercentBins") else self.score_percent_bins()
         mult = [i for i in range(5)] * len(self.slide.get_genes())
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [f"Weighted bin {i}" for i in range(5)])
         weighted = {col: [] for col in percent_bins.columns}
@@ -285,7 +314,9 @@ class Tissue:
             percent_bins[col] *= mult
             weighted[col] = percent_bins.loc[:, col].tolist()
 
-        return pd.DataFrame(weighted, index=idx)
+        ret = pd.DataFrame(weighted, index=idx)
+        self.db_put("WeightedPercentBins", ret)
+        return ret
 
     def calculate_hscores(self):
         """
