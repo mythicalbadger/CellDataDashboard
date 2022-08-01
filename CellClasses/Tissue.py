@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import List
 import numpy as np
+import matplotlib.pyplot as plt
 
 from AuxilaryClasses.DataLoader import DataLoader
 import CellClasses.SlideDeck
@@ -18,7 +19,7 @@ class Tissue:
         self.load_data()
         self.db = None
         self.initialize_db()
-        self.everything_cells = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells"))
+        self.everything_cells = self.sort_datasets_by_field(self.get_datasets_by_pattern("EverythingCells_set") + self.get_datasets_by_pattern("EverythingCells_Field"))
 
     def db_contains(self, field: str):
         return self.db[field] is not None
@@ -30,7 +31,7 @@ class Tissue:
         return self.db[field]
 
     def initialize_db(self):
-        fields = ["CellCounts", "MedianMarkers", "ExpressedMarkers", "ACDScores", "ZeroScores", "PositiveExpressors", "PercentBins", "WeightedPercentBins"]
+        fields = ["CellCounts", "MedianMarkers", "ExpressedMarkers", "ACDScores", "ZeroScores", "PositiveExpressors", "PercentBins", "WeightedPercentBins", "HScores", "HScoreMeans", "BorderHScoreMeans", "MiddleHScoreMeans", "MedianNbrs"]
         self.db = {f: None for f in fields}
 
     def load_data(self) -> None:
@@ -39,7 +40,7 @@ class Tissue:
         :return: None
         """
         self.add_datasets(self.data_loader.load_files_by_expression("EverythingExpression"))
-        self.add_datasets(self.data_loader.load_files_by_expression("EverythingCells.csv"))
+        self.add_datasets(self.data_loader.load_files_by_expression("EverythingCells"))
 
     def add_dataset(self, dataset: pd.DataFrame) -> None:
         """
@@ -137,6 +138,7 @@ class Tissue:
                 scores[dataset.name.split("Cells_")[-1]].append(dataset.loc[:, column_key].sum())
 
         ret = pd.DataFrame(scores, index=idx)
+        self.db_put("ExpressedMarkers", ret)
         return ret
 
     def calculate_median_markers(self):
@@ -323,6 +325,8 @@ class Tissue:
         Calculates H-Scores for each gene - the sum of weighted percent bins
         :return: pandas DataFrame with H-Scores
         """
+        if self.db_contains("HScores"):
+            return self.db_get("HScores")
 
         # Get weighted percent bins and set up index
         weighted = self.score_weighted_percent_bins()
@@ -333,31 +337,46 @@ class Tissue:
             field = weighted[col].tolist()
             hscores[col] = [sum(field[i:i + 5]) for i in range(0, len(field), 5)]
 
-        return pd.DataFrame(hscores, index=idx)
+        ret = pd.DataFrame(hscores, index=idx)
+        self.db_put("HScores", ret)
+        return ret
 
     def calculate_hscore_means(self):
         """
         Calculates the total mean of H-Scores
         :return: pandas DataFrame containing means
         """
-        hscores = self.calculate_hscores()
-        return hscores.mean(axis=1)
+        if self.db_contains("HScoreMeans"):
+            return self.db_get("HScoreMeans")
+
+        hscores = self.db_get("HScores") if self.db_contains("HScores") else self.calculate_hscores()
+        ret = hscores.mean(axis=1)
+        self.db_put("HScoreMeans", ret)
+        return ret
 
     def calculate_border_hscore_means(self):
         """
         Calculates the border mean of H-Scores (fields with B)
         :return: pandas DataFrame containing means
         """
-        hscores = self.calculate_hscores()
-        return hscores.loc[:, hscores.columns.str.contains("_B")].mean(axis=1)
+        if self.db_contains("BorderHScoreMeans"):
+            return self.db_get("BorderHScoreMeans")
+        hscores = self.db_get("HScores") if self.db_contains("HScores") else self.calculate_hscores()
+        ret = hscores.loc[:, hscores.columns.str.contains("_B")].mean(axis=1)
+        self.db_put("BorderHScoreMeans", ret)
+        return ret
 
     def calculate_middle_hscore_means(self):
         """
         Calculates the middle mean of H-Scores (fields with M)
         :return: pandas DataFrame containing means
         """
-        hscores = self.calculate_hscores()
-        return hscores.loc[:, hscores.columns.str.contains("_M")].mean(axis=1)
+        if self.db_contains("MiddleHScoreMeans"):
+            return self.db_get("MiddleHScoreMeans")
+        hscores = self.db_get("HScores") if self.db_contains("HScores") else self.calculate_hscores()
+        ret = hscores.loc[:, hscores.columns.str.contains("_M")].mean(axis=1)
+        self.db_put("MiddleHScoreMeans", ret)
+        return ret
 
     def hscores_to_csv(self):
         total = self.calculate_hscore_means()
@@ -382,3 +401,23 @@ class Tissue:
 
     def means_to_csv(self):
         return self.calculate_hscores()
+
+    def median_nbrs(self):
+        if self.db_contains("MedianNbrs"):
+            return self.db_get("MedianNbrs")
+
+        gene_to_num = {g.value : i for i, g in enumerate(self.slide.get_genes())}
+        # I hate myself
+        datasets = sorted(self.sort_datasets_by_field(list(filter(lambda d: "EverythingCells_Field" not in d.name and "and" not in d.name, self.get_datasets_by_pattern("Exp_EverythingCells")))), key=lambda d: gene_to_num[d.name.split("_")[2]])
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [g.value for g in self.slide.get_genes()])
+        medians = {"Field " + d.name.split(" ")[-1]: [] for d in datasets}  # field names
+        for dataset in datasets:
+            for gene in self.slide.get_genes():
+                column_key = f"Neighbors_NumberOfNeighbors_Expression_{gene.value}_20"
+                median = 0.0
+                if column_key in dataset.columns:
+                    median = dataset.loc[:, column_key].median() if not dataset.loc[:, column_key].isna().all() else 0.0
+                medians["Field " + dataset.name.split(" ")[-1]].append(median)
+        ret = pd.DataFrame(medians, index=idx)
+        self.db_put("MedianNbrs", ret)
+        return ret

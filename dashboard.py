@@ -154,3 +154,10 @@ if "slide_deck" in st.session_state:
         for i, mean in enumerate(hscore_means):
             cols[i].metric(hscore_means.index[i][0], round(mean, 2))
 
+    st.subheader("Median Neighbors")
+    median_nbrs = tissue.median_nbrs()
+    st.download_button(label="Download",
+                       data=median_nbrs.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-median-neighbors.csv",
+                       mime="text/csv")
+    st.dataframe(median_nbrs)
