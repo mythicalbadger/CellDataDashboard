@@ -41,9 +41,9 @@ class Tissue:
             "PercentBins",
             "WeightedPercentBins",
             "HScores",
-            "HScoreMeans",
-            "BorderHScoreMeans",
-            "MiddleHScoreMeans",
+            "HScoreMedians",
+            "BorderHScoreMedians",
+            "MiddleHScoreMedians",
             "MedianNbrs",
             "MedianPercentTouching"
         ]
@@ -365,53 +365,53 @@ class Tissue:
         self.db_put("HScores", ret)
         return ret
 
-    def calculate_hscore_means(self):
+    def calculate_hscore_medians(self):
         """
-        Calculates the total mean of H-Scores
-        :return: pandas DataFrame containing means
+        Calculates the total median of H-Scores
+        :return: pandas DataFrame containing median
         """
-        if self.db_contains("HScoreMeans"):
-            return self.db_get("HScoreMeans")
+        if self.db_contains("HScoreMedians"):
+            return self.db_get("HScoreMedians")
 
         hscores = self.db_get("HScores") if self.db_contains("HScores") else self.calculate_hscores()
-        ret = hscores.mean(axis=1)
-        self.db_put("HScoreMeans", ret)
+        ret = hscores.median(axis=1)
+        self.db_put("HScoreMedians", ret)
         return ret
 
-    def calculate_border_hscore_means(self):
+    def calculate_border_hscore_medians(self):
         """
-        Calculates the border mean of H-Scores (fields with B)
-        :return: pandas DataFrame containing means
+        Calculates the border medians of H-Scores (fields with B)
+        :return: pandas DataFrame containing medians
         """
-        if self.db_contains("BorderHScoreMeans"):
-            return self.db_get("BorderHScoreMeans")
+        if self.db_contains("BorderHScoreMedians"):
+            return self.db_get("BorderHScoreMedians")
         hscores = self.db_get("HScores") if self.db_contains("HScores") else self.calculate_hscores()
-        ret = hscores.loc[:, hscores.columns.str.contains("_B")].mean(axis=1)
-        self.db_put("BorderHScoreMeans", ret)
+        ret = hscores.loc[:, hscores.columns.str.contains("_B")].median(axis=1)
+        self.db_put("BorderHScoreMedians", ret)
         return ret
 
-    def calculate_middle_hscore_means(self):
+    def calculate_middle_hscore_medians(self):
         """
-        Calculates the middle mean of H-Scores (fields with M)
-        :return: pandas DataFrame containing means
+        Calculates the middle median of H-Scores (fields with M)
+        :return: pandas DataFrame containing medians
         """
-        if self.db_contains("MiddleHScoreMeans"):
-            return self.db_get("MiddleHScoreMeans")
+        if self.db_contains("MiddleHScoreMedians"):
+            return self.db_get("MiddleHScoreMedians")
         hscores = self.db_get("HScores") if self.db_contains("HScores") else self.calculate_hscores()
-        ret = hscores.loc[:, hscores.columns.str.contains("_M")].mean(axis=1)
-        self.db_put("MiddleHScoreMeans", ret)
+        ret = hscores.loc[:, hscores.columns.str.contains("_M")].median(axis=1)
+        self.db_put("MiddleHScoreMedians", ret)
         return ret
 
     def hscores_to_csv(self):
-        total = self.calculate_hscore_means()
+        total = self.calculate_hscore_medians()
         total_idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], ["Total H-Scores"])
         total.index = total_idx
 
-        border = self.calculate_border_hscore_means()
+        border = self.calculate_border_hscore_medians()
         border_idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], ["Border H-Scores"])
         border.index = border_idx
 
-        middle = self.calculate_middle_hscore_means()
+        middle = self.calculate_middle_hscore_medians()
         middle_idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], ["Middle H-Scores"])
         middle.index = middle_idx
 

@@ -127,28 +127,28 @@ if "slide_deck" in st.session_state:
                        mime="text/csv")
     st.dataframe(hscores)
 
-    st.subheader("H-Score Means (Combined)")
+    st.subheader("H-Score Medians (Combined)")
     st.download_button(label="Download",
                        data=save_means(tissue),
                        file_name=tissue.name + "-hscoremeans.csv",
                        mime="text/csv")
     cols = st.columns(4)
 
-    hscore_means = tissue.calculate_hscore_means()
+    hscore_means = tissue.calculate_hscore_medians()
     for i, mean in enumerate(hscore_means):
         cols[i].metric(hscore_means.index[i][0], round(mean, 2))
 
-    hscore_means = tissue.calculate_border_hscore_means()
+    hscore_means = tissue.calculate_border_hscore_medians()
     if not hscore_means.isnull().values.any():
-        st.subheader("H-Score Means (Border)")
+        st.subheader("H-Score Medians (Border)")
         cols = st.columns(4)
 
         for i, mean in enumerate(hscore_means):
             cols[i].metric(hscore_means.index[i][0], round(mean, 2))
 
-    hscore_means = tissue.calculate_middle_hscore_means()
+    hscore_means = tissue.calculate_middle_hscore_medians()
     if not hscore_means.isnull().values.any():
-        st.subheader("H-Score Means (Middle)")
+        st.subheader("H-Score Medians (Middle)")
         cols = st.columns(4)
 
         for i, mean in enumerate(hscore_means):
