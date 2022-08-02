@@ -161,3 +161,11 @@ if "slide_deck" in st.session_state:
                        file_name=tissue.name + "-median-neighbors.csv",
                        mime="text/csv")
     st.dataframe(median_nbrs)
+
+    st.subheader("Median Percent Touching")
+    median_percent_touching = tissue.median_percent_touching()
+    st.download_button(label="Download",
+                       data=median_percent_touching.to_csv().encode("utf-8"),
+                       file_name=tissue.name + "-median_percent_touching.csv",
+                       mime="text/csv")
+    st.dataframe(median_percent_touching)

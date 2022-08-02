@@ -31,7 +31,22 @@ class Tissue:
         return self.db[field]
 
     def initialize_db(self):
-        fields = ["CellCounts", "MedianMarkers", "ExpressedMarkers", "ACDScores", "ZeroScores", "PositiveExpressors", "PercentBins", "WeightedPercentBins", "HScores", "HScoreMeans", "BorderHScoreMeans", "MiddleHScoreMeans", "MedianNbrs"]
+        fields = [
+            "CellCounts",
+            "MedianMarkers",
+            "ExpressedMarkers",
+            "ACDScores",
+            "ZeroScores",
+            "PositiveExpressors",
+            "PercentBins",
+            "WeightedPercentBins",
+            "HScores",
+            "HScoreMeans",
+            "BorderHScoreMeans",
+            "MiddleHScoreMeans",
+            "MedianNbrs",
+            "MedianPercentTouching"
+        ]
         self.db = {f: None for f in fields}
 
     def load_data(self) -> None:
@@ -120,6 +135,7 @@ class Tissue:
     def calculate_expressed_markers(self):
         """
         Calculates total expressed markers by fetching EverythingCells
+        :return: DataFrame of total expressed markers
         """
         if self.db_contains("ExpressedMarkers"):
             return self.db_get("ExpressedMarkers")
@@ -142,6 +158,10 @@ class Tissue:
         return ret
 
     def calculate_median_markers(self):
+        """
+        Calculates the median expressed markers for each cell (by gene)
+        :return: DataFrame of median expressed markers
+        """
         if self.db_contains("MedianMarkers"):
             return self.db_get("MedianMarkers")
 
@@ -238,6 +258,10 @@ class Tissue:
         return ret
 
     def calculate_positive_expressors(self):
+        """
+        Calculates the number of cells that have expressions >= bin_one_threshold
+        :return:
+        """
         if self.db_contains("PositiveExpressors"):
             return self.db_get("PositiveExpressors")
 
@@ -403,6 +427,9 @@ class Tissue:
         return self.calculate_hscores()
 
     def median_nbrs(self):
+        """
+        Calculates the median number of neighbors of each gene type per gene per cell(???)
+        """
         if self.db_contains("MedianNbrs"):
             return self.db_get("MedianNbrs")
 
@@ -420,4 +447,27 @@ class Tissue:
                 medians["Field " + dataset.name.split(" ")[-1]].append(median)
         ret = pd.DataFrame(medians, index=idx)
         self.db_put("MedianNbrs", ret)
+        return ret
+
+    def median_percent_touching(self):
+        """
+        Calculates the median number of neighbors touching for each gene type per gene per cell(???)
+        """
+        if self.db_contains("MedianPercentTouching"):
+            return self.db_get("MedianPercentTouching")
+
+        gene_to_num = {g.value : i for i, g in enumerate(self.slide.get_genes())}
+        # I hate myself
+        datasets = sorted(self.sort_datasets_by_field(list(filter(lambda d: "EverythingCells_Field" not in d.name and "and" not in d.name, self.get_datasets_by_pattern("Exp_EverythingCells")))), key=lambda d: gene_to_num[d.name.split("_")[2]])
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [g.value for g in self.slide.get_genes()])
+        percents = {"Field " + d.name.split(" ")[-1]: [] for d in datasets}  # field names
+        for dataset in datasets:
+            for gene in self.slide.get_genes():
+                column_key = f"Neighbors_PercentTouching_Expression_{gene.value}_20"
+                percent = 0.0
+                if column_key in dataset.columns:
+                    percent = dataset.loc[:, column_key].median() if not dataset.loc[:, column_key].isna().all() else 0.0
+                percents["Field " + dataset.name.split(" ")[-1]].append(percent)
+        ret = pd.DataFrame(percents, index=idx)
+        self.db_put("PercentTouching", ret)
         return ret
