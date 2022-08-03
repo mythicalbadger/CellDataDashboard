@@ -32,7 +32,7 @@ Wait for that to finish, and the setup should be completed.
 ### Step 3: Run the dashboard
 After you've installed all the dependencies, while still in your terminal, type:
 ```bash
-streamlit run dashboard.py
+streamlit run main_page.py
 ```
 
 That will start the dashboard (a browser tab should pop open automatically).
