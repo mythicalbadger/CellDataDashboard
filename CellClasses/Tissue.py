@@ -6,6 +6,7 @@ import CellClasses.SlideDeck
 import CellClasses.RegionType
 from CellClasses.RegionType import RegionType
 
+import itertools
 
 class Tissue:
 
@@ -56,7 +57,9 @@ class Tissue:
             "BorderHScoreMedians",
             "MiddleHScoreMedians",
             "MedianNbrs",
-            "MedianPercentTouching"
+            "MedianPercentTouching",
+            "PairGeneExpression",
+            "TrioGeneExpression"
         ]
 
         db = dict()
@@ -494,3 +497,58 @@ class Tissue:
         ret = pd.DataFrame(percents, index=idx)
         self.db_put("PercentTouching", ret, region)
         return ret
+
+
+    def calculate_pair_gene_expression(self, region: RegionType):
+        """
+        Calculates gene pair counts by fetching EverythingCells
+        :return: pandas DataFrame with counts
+        """
+        if self.db_contains("PairGeneExpression", region):
+            return self.db_get("PairGeneExpression", region)
+
+        datasets = self.region_to_data(region)
+        expressions = {d.name.split(f"{region.value}_")[-1]: [] for d in datasets}
+
+        pair_cols = list(filter(lambda col_name: col_name.count("and") == 1, datasets[0].columns.tolist()))
+        if len(pair_cols) == 0:
+            return pd.DataFrame([])
+
+        idx = self.gen_multi_idx([col.split("_")[-2] for col in pair_cols], ["Expressions"])
+
+        for dataset in datasets:
+            for col in pair_cols:
+                s = dataset.loc[:, col].where(lambda x: x > 0).dropna().count()
+                expressions[dataset.name.split(f"{region.value}_")[-1]].append(s)
+
+        ret = pd.DataFrame(expressions, index=idx)
+        self.db_put("PairGeneExpression", ret, region)
+        return ret
+
+
+    def calculate_trio_gene_expression(self, region: RegionType):
+        """
+        Calculates gene trio counts by fetching EverythingCells
+        :return: pandas DataFrame with counts
+        """
+        if self.db_contains("TrioGeneExpression", region):
+            return self.db_get("TrioGeneExpression", region)
+
+        datasets = self.region_to_data(region)
+        expressions = {d.name.split(f"{region.value}_")[-1]: [] for d in datasets}
+
+        pair_cols = list(filter(lambda col_name: col_name.count("and") == 2, datasets[0].columns.tolist()))
+        if len(pair_cols) == 0:
+            return pd.DataFrame([])
+
+        idx = self.gen_multi_idx([col.split("_")[-2] for col in pair_cols], ["Expressions"])
+
+        for dataset in datasets:
+            for col in pair_cols:
+                s = dataset.loc[:, col].where(lambda x: x > 0).dropna().count()
+                expressions[dataset.name.split(f"{region.value}_")[-1]].append(s)
+
+        ret = pd.DataFrame(expressions, index=idx)
+        self.db_put("TrioGeneExpression", ret, region)
+        return ret
+

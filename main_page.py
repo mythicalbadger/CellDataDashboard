@@ -6,6 +6,7 @@ from PIL import Image
 
 st.set_page_config(layout="wide")
 
+
 def create_slide_deck(path):
     if "slide_deck" not in st.session_state:
         st.session_state.slide_deck = SlideDeck(path)
@@ -20,16 +21,20 @@ def get_slide(slide_deck, slide: str):
 def get_tissue(slide, tissue):
     return slide.tissues[tissue]
 
+
 def save_means(tissue):
     out = tissue.hscores_to_csv()
     return out.to_csv().encode("utf-8")
+
 
 def save_hscores(tissue):
     out = tissue.means_to_csv()
     return out.to_csv().encode("utf-8")
 
+
 def save_zero_scores(tissue):
     return tissue.calculate_zero_scores().to_csv().encode("utf-8")
+
 
 class PageCreator():
     def __init__(self, region: RegionType):
@@ -56,7 +61,8 @@ class PageCreator():
             slide = deck.get_slide(slide)
 
             st.subheader("Choose a tissue")
-            tissue = st.selectbox("Tissue", options=[tissue for tissue in slide.tissues], key=f"selectbox-{self.region.value}")
+            tissue = st.selectbox("Tissue", options=[tissue for tissue in slide.tissues],
+                                  key=f"selectbox-{self.region.value}")
             tissue = get_tissue(slide, tissue)
             self.tissue = tissue
 
@@ -110,6 +116,16 @@ class PageCreator():
         self.create_download_button("median-percent-touching", df)
         st.dataframe(df)
 
+        st.header("Pair Gene Expression")
+        df = tissue.calculate_pair_gene_expression(self.region)
+        self.create_download_button("pair-gene-expression-touching", df)
+        st.dataframe(df)
+
+        st.header("Trio Gene Expression")
+        df = tissue.calculate_trio_gene_expression(self.region)
+        self.create_download_button("trio-gene-expression-touching", df)
+        st.dataframe(df)
+
         st.header("H-Scores")
         df = tissue.calculate_hscores(self.region)
         self.create_download_button("hscores", df)
@@ -142,11 +158,14 @@ class PageCreator():
             for i, mean in enumerate(hscore_means):
                 cols[i].metric(hscore_means.index[i][0], round(mean, 2))
 
+
 st.title("Cell Data Dashboard")
 st.subheader("Specify Data Path")
-st.write("Please specify the **absolute path** to the folder containing your data. The folder hierarchy / naming should look like this:")
+st.write(
+    "Please specify the **absolute path** to the folder containing your data. The folder hierarchy / naming should look like this:")
 st.image(Image.open("resources/folder-hierarchy.png"))
-st.write("All data will be in a folder called `Data`. Inside `Data`, there will be a folder called `Slides` for each slide's folder, and a `Thresholds.xlsx` file for the thresholds.")
+st.write(
+    "All data will be in a folder called `Data`. Inside `Data`, there will be a folder called `Slides` for each slide's folder, and a `Thresholds.xlsx` file for the thresholds.")
 
 path = st.text_input(label="Path", value="/home/mythicalbadger/CellDataExtractor/Data/")
 load_btn = st.button(label="Load")
@@ -158,7 +177,8 @@ if "slide_deck" in st.session_state:
     deck: SlideDeck = st.session_state.slide_deck
     with st.sidebar:
         st.subheader("Choose a slide")
-        slide = st.selectbox("Slide", options=["QC Slide", "Slide 1", "Slide 2", "Slide 3", "Slide 4", "Slide 5", "Slide 6"])
+        slide = st.selectbox("Slide",
+                             options=["QC Slide", "Slide 1", "Slide 2", "Slide 3", "Slide 4", "Slide 5", "Slide 6"])
         slide = deck.get_slide(slide)
 
         st.subheader("Choose a tissue")
