@@ -92,7 +92,7 @@ class PageCreator():
         st.dataframe(df)
 
         st.header("Positive Expressors")
-        df = tissue.calculate_zero_scores(self.region)
+        df = tissue.calculate_positive_expressors(self.region)
         self.create_download_button("positive-expressors", df)
         st.dataframe(df)
 
