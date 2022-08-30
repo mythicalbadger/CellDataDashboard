@@ -1,10 +1,12 @@
 import pandas as pd
+import numpy as np
 from typing import List
 
 from AuxilaryClasses.DataLoader import DataLoader
 import CellClasses.SlideDeck
 import CellClasses.RegionType
 from CellClasses.RegionType import RegionType
+from CellClasses.GeneType import GeneType
 
 import itertools
 
@@ -59,7 +61,8 @@ class Tissue:
             "MedianNbrs",
             "MedianPercentTouching",
             "PairGeneExpression",
-            "TrioGeneExpression"
+            "TrioGeneExpression",
+            "AvgGeneDist"
         ]
 
         db = dict()
@@ -110,6 +113,9 @@ class Tissue:
         :return: a list of pandas DataFrames
         """
         return [self.get_dataset(d) for d in self.datasets if pattern in d]
+
+    def filter_datasets_by_name_pattern(self, datasets: List[pd.DataFrame], pattern: str):
+        return list(filter(lambda d: pattern in d.name, datasets))
 
     def list_datasets(self) -> None:
         """
@@ -460,6 +466,8 @@ class Tissue:
             return self.db_get("MedianNbrs", region)
 
         gene_to_num = {g.value : i for i, g in enumerate(self.slide.get_genes())}
+        if GeneType.NCBP2AS2 in self.slide.get_genes():
+            gene_to_num["NCBP2"] = gene_to_num.pop(GeneType.NCBP2AS2.value)
         # I hate myself
         datasets = sorted(self.sort_datasets_by_field(list(filter(lambda d: f"{region.value}_Field" not in d.name and "and" not in d.name, self.get_datasets_by_pattern(f"Exp_{region.value}")))), key=lambda d: gene_to_num[d.name.split("_")[2]])
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [g.value for g in self.slide.get_genes()])
@@ -483,6 +491,8 @@ class Tissue:
             return self.db_get("MedianPercentTouching", region)
 
         gene_to_num = {g.value : i for i, g in enumerate(self.slide.get_genes())}
+        if GeneType.NCBP2AS2 in self.slide.get_genes():
+            gene_to_num["NCBP2"] = gene_to_num.pop(GeneType.NCBP2AS2.value)
         # I hate myself
         datasets = sorted(self.sort_datasets_by_field(list(filter(lambda d: f"{region.value}_Field" not in d.name and "and" not in d.name, self.get_datasets_by_pattern(f"Exp_{region.value}")))), key=lambda d: gene_to_num[d.name.split("_")[2]])
         idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [g.value for g in self.slide.get_genes()])
@@ -551,4 +561,3 @@ class Tissue:
         ret = pd.DataFrame(expressions, index=idx)
         self.db_put("TrioGeneExpression", ret, region)
         return ret
-
