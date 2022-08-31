@@ -126,6 +126,11 @@ class PageCreator():
         self.create_download_button("trio-gene-expression-touching", df)
         st.dataframe(df)
 
+        st.header("Quad Gene Expression")
+        df = tissue.calculate_quad_gene_expression(self.region)
+        self.create_download_button("quad-gene-expression-touching", df)
+        st.dataframe(df)
+
         st.header("H-Scores")
         df = tissue.calculate_hscores(self.region)
         self.create_download_button("hscores", df)

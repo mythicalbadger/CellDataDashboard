@@ -62,7 +62,7 @@ class Tissue:
             "MedianPercentTouching",
             "PairGeneExpression",
             "TrioGeneExpression",
-            "AvgGeneDist"
+            "QuadGeneExpression"
         ]
 
         db = dict()
@@ -560,4 +560,30 @@ class Tissue:
 
         ret = pd.DataFrame(expressions, index=idx)
         self.db_put("TrioGeneExpression", ret, region)
+        return ret
+
+    def calculate_quad_gene_expression(self, region: RegionType):
+        """
+        Calculates gene quadruple counts by fetching EverythingCells
+        :return: pandas DataFrame with counts
+        """
+        if self.db_contains("QuadGeneExpression", region):
+            return self.db_get("QuadGeneExpression", region)
+
+        datasets = self.region_to_data(region)
+        expressions = {d.name.split(f"{region.value}_")[-1]: [] for d in datasets}
+
+        pair_cols = list(filter(lambda col_name: col_name.count("and") == 3, datasets[0].columns.tolist()))
+        if len(pair_cols) == 0:
+            return pd.DataFrame([])
+
+        idx = self.gen_multi_idx([col.split("_")[-2] for col in pair_cols], ["Expressions"])
+
+        for dataset in datasets:
+            for col in pair_cols:
+                s = dataset.loc[:, col].where(lambda x: x > 0).dropna().count()
+                expressions[dataset.name.split(f"{region.value}_")[-1]].append(s)
+
+        ret = pd.DataFrame(expressions, index=idx)
+        self.db_put("QuadGeneExpression", ret, region)
         return ret
