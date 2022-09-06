@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import itertools
 from typing import List
 
 from AuxilaryClasses.DataLoader import DataLoader
@@ -7,6 +8,7 @@ import CellClasses.SlideDeck
 import CellClasses.RegionType
 from CellClasses.RegionType import RegionType
 from CellClasses.GeneType import GeneType
+from AuxilaryClasses.DataPlot import DataPlot
 
 import itertools
 
@@ -116,6 +118,18 @@ class Tissue:
 
     def filter_datasets_by_name_pattern(self, datasets: List[pd.DataFrame], pattern: str):
         return list(filter(lambda d: pattern in d.name, datasets))
+
+    def filter_datasets_by_num_token(self, datasets: List[pd.DataFrame], token: str, num: int):
+        return list(filter(lambda d: d.name.count(token) == num, datasets))
+
+    def get_pair_gene_datasets(self):
+        return self.filter_datasets_by_num_token(list(self.datasets.values()), "and", 1)
+
+    def get_trio_gene_datasets(self):
+        return self.filter_datasets_by_num_token(list(self.datasets.values()), "and", 2)
+
+    def get_quad_gene_datasets(self):
+        return self.filter_datasets_by_num_token(list(self.datasets.values()), "and", 3)
 
     def list_datasets(self) -> None:
         """
@@ -524,7 +538,7 @@ class Tissue:
         if len(pair_cols) == 0:
             return pd.DataFrame([])
 
-        idx = self.gen_multi_idx([col.split("_")[-2] for col in pair_cols], ["Expressions"])
+        idx = self.gen_multi_idx([col[15:-6] for col in pair_cols], ["Expressions"])
 
         for dataset in datasets:
             for col in pair_cols:
@@ -551,7 +565,7 @@ class Tissue:
         if len(pair_cols) == 0:
             return pd.DataFrame([])
 
-        idx = self.gen_multi_idx([col.split("_")[-2] for col in pair_cols], ["Expressions"])
+        idx = self.gen_multi_idx([col[15:-6] for col in pair_cols], ["Expressions"])
 
         for dataset in datasets:
             for col in pair_cols:
@@ -586,4 +600,73 @@ class Tissue:
 
         ret = pd.DataFrame(expressions, index=idx)
         self.db_put("QuadGeneExpression", ret, region)
+        return ret
+
+    def euclidean_distance(self, p1, p2):
+        xs1, ys1 = p1
+        xs2, ys2 = p2
+        return np.sqrt((xs1-xs2)**2 + (ys1-ys2)**2)
+
+    def median_distance(self, dataA, dataB):
+        distances = [self.euclidean_distance(A, B) for A in dataA for B in dataB]
+        return np.median(np.array(distances))
+
+    def calculate_median_distances(self, region: RegionType):
+        datasets = self.region_to_data(region)
+        ret = { d.name.split(f"{region.value}_")[-1]: [] for d in datasets}
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [g.value for g in self.slide.get_genes()])
+
+        for df in datasets:
+            plots = []
+            for gene in self.slide.get_genes():
+                gene_dataset = df.name.split("_")
+                gene_dataset.insert(-2, gene.value)
+                gene_dataset = '_'.join(gene_dataset)
+                plot = DataPlot(
+                    gene.value,
+                    np.array(self.get_dataset(gene_dataset).loc[:, f"Location_Center_X"].dropna()), 
+                    np.array(self.get_dataset(gene_dataset).loc[:, f"Location_Center_Y"].dropna()), 
+                )
+                plots.append(plot)
+
+            for i in range(len(plots)):
+                for j in range(len(plots)):
+                    g1 = plots[i]
+                    g2 = plots[j]
+                    g1_data = list(zip(g1.xs, g1.ys))                
+                    g2_data = list(zip(g2.xs, g2.ys))                
+                    ret[df.name.split(f"{region.value}_")[-1]].append(self.median_distance(g1_data, g2_data))
+            
+        ret = pd.DataFrame(ret, index=idx)
+        return ret
+
+    def calculate_median_pair_distances(self, region: RegionType):
+        datasets = self.region_to_data(region)
+        ret = { d.name.split(f"{region.value}_")[-1]: [] for d in datasets}
+        pair_datasets = self.get_pair_gene_datasets()
+        print([df.name for df in pair_datasets])
+        idx = self.gen_multi_idx([g.value for g in self.slide.get_genes()], [g.value for g in self.slide.get_genes()])
+
+        for df in datasets:
+            plots = []
+            for gene in self.slide.get_genes():
+                gene_dataset = df.name.split("_")
+                gene_dataset.insert(-2, gene.value)
+                gene_dataset = '_'.join(gene_dataset)
+                plot = DataPlot(
+                    gene.value,
+                    np.array(self.get_dataset(gene_dataset).loc[:, f"Location_Center_X"].dropna()), 
+                    np.array(self.get_dataset(gene_dataset).loc[:, f"Location_Center_Y"].dropna()), 
+                )
+                plots.append(plot)
+
+            for i in range(len(plots)):
+                for j in range(len(plots)):
+                    g1 = plots[i]
+                    g2 = plots[j]
+                    g1_data = list(zip(g1.xs, g1.ys))                
+                    g2_data = list(zip(g2.xs, g2.ys))                
+                    ret[df.name.split(f"{region.value}_")[-1]].append(self.median_distance(g1_data, g2_data))
+            
+        ret = pd.DataFrame(ret, index=idx)
         return ret
