@@ -611,7 +611,7 @@ class Tissue:
         distances = [self.euclidean_distance(A, B) for A in dataA for B in dataB]
         return np.median(np.array(distances))
 
-"""
+    """
     def calculate_median_distances(self, region: RegionType):
         datasets = self.region_to_data(region)
         ret = { d.name.split(f"{region.value}_")[-1]: [] for d in datasets}
