@@ -8,7 +8,7 @@ import CellClasses.SlideDeck
 import CellClasses.RegionType
 from CellClasses.RegionType import RegionType
 from CellClasses.GeneType import GeneType
-from AuxilaryClasses.DataPlot import DataPlot
+#from AuxilaryClasses.DataPlot import DataPlot
 
 import itertools
 
@@ -611,6 +611,7 @@ class Tissue:
         distances = [self.euclidean_distance(A, B) for A in dataA for B in dataB]
         return np.median(np.array(distances))
 
+"""
     def calculate_median_distances(self, region: RegionType):
         datasets = self.region_to_data(region)
         ret = { d.name.split(f"{region.value}_")[-1]: [] for d in datasets}
@@ -670,3 +671,4 @@ class Tissue:
             
         ret = pd.DataFrame(ret, index=idx)
         return ret
+        """
