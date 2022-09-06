@@ -131,6 +131,13 @@ class PageCreator():
         self.create_download_button("quad-gene-expression-touching", df)
         st.dataframe(df)
 
+"""
+        st.header("Median Cell Distances")
+        df = tissue.calculate_median_distances(self.region)
+        self.create_download_button("average-distances", df)
+        st.dataframe(df)
+        """
+
         st.header("H-Scores")
         df = tissue.calculate_hscores(self.region)
         self.create_download_button("hscores", df)
