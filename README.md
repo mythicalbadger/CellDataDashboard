@@ -1,4 +1,6 @@
 # Cell Data Dashboard
+[![DOI](https://zenodo.org/badge/481438728.svg)](https://doi.org/10.5281/zenodo.15107352)
+
 ## Pulling Changes
 If a change has been made, you will want to open up your terminal and `cd` (change directory) into the path where your CellDataDashboard is (or do the folder dragging thing on MacOS). Once you are in the folder in your terminal, type
 ```bash
