@@ -36,5 +36,8 @@ streamlit run main_page.py
 ```
 
 That will start the dashboard (a browser tab should pop open automatically).
-### Step 4: Profit
+### Step 4: Using the dashboard
+First, the user must specify the absolute path to the folder containing the data outputted from CellProfiler. After specifying a data path, the user must click the Load button and wait for the data to be processed. Following that, the user can select the slide (QC, Experimental Slide 1-6) and tissue (54 samples of FFPET and FFT) they wish to extract and analyze further from the sidebar. Should the user wish to perform spatial analyses across different sub-localizations, they can swap between pages on the sidebar as well.
+
+### Step 5: Exiting the dashboard
 Once you're done with the dashboard, go back to the terminal and press `Ctrl-C` to kill it.
